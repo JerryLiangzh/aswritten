@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="As I've Written" />
+    <title>As I've Written</title>
+  </head>
+  <body>
+    <main class="app-shell" id="app-shell">
+      <header class="app-header">
+        <h1>As I've Written</h1>
+        <div class="app-header__actions">
+          <button id="markdown-import" class="file-button" type="button">导入 Markdown</button>
+          <button id="markdown-export" class="file-button" type="button">导出 Markdown</button>
+          <input
+            id="markdown-import-input"
+            type="file"
+            accept=".md,.markdown,text/markdown"
+            hidden
+          />
+          <button
+            id="usage-document-toggle"
+            class="usage-document-toggle"
+            type="button"
+            aria-controls="usage-document"
+            aria-expanded="false"
+          >使用文档</button>
+          <button
+            id="formula-panel-toggle"
+            class="formula-panel-toggle"
+            type="button"
+            aria-controls="formula-panel"
+            aria-expanded="false"
+          >公式助手</button>
+        </div>
+      </header>
+      <p id="document-status" class="document-status" role="status" aria-live="polite"></p>
+      <div class="editor-layout">
+        <div id="editor"></div>
+        <aside id="formula-panel" aria-label="公式助手" hidden></aside>
+      </div>
+      <aside id="usage-document" class="usage-document" aria-label="使用文档" hidden></aside>
+      <span
+        id="selection-debug"
+        class="visually-hidden"
+        data-testid="selection-debug"
+        aria-hidden="true"
+      >0:0</span>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

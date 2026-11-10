@@ -1,0 +1,30 @@
+{
+  "name": "aswritten",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "verify": "npm run test && npm run build && npm run test:e2e"
+  },
+  "dependencies": {
+    "vditor": "^4.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^5.1.0"
+  }
+}
