@@ -91,17 +91,17 @@ const importButton = requiredElement<HTMLButtonElement>('markdown-import')
 const exportButton = requiredElement<HTMLButtonElement>('markdown-export')
 const importInput = requiredElement<HTMLInputElement>('markdown-import-input')
 
+const setDocumentStatus = (message: string, isError = false) => {
+  documentStatus.textContent = message
+  documentStatus.dataset.status = isError ? 'error' : 'normal'
+}
+
 async function bootstrap() {
 const adapter = await createVditorAdapter(editorContainer)
 
 importButton.disabled = false
 exportButton.disabled = false
 panelToggle.disabled = false
-
-const setDocumentStatus = (message: string, isError = false) => {
-  documentStatus.textContent = message
-  documentStatus.dataset.status = isError ? 'error' : 'normal'
-}
 
 let storage: Storage | null = null
 try {
