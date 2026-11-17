@@ -11,8 +11,8 @@
       <header class="app-header">
         <h1>As I've Written</h1>
         <div class="app-header__actions">
-          <button id="markdown-import" class="file-button" type="button">导入 Markdown</button>
-          <button id="markdown-export" class="file-button" type="button">导出 Markdown</button>
+          <button id="markdown-import" class="file-button" type="button" disabled>导入 Markdown</button>
+          <button id="markdown-export" class="file-button" type="button" disabled>导出 Markdown</button>
           <input
             id="markdown-import-input"
             type="file"
@@ -32,6 +32,7 @@
             type="button"
             aria-controls="formula-panel"
             aria-expanded="false"
+            disabled
           >公式助手</button>
         </div>
       </header>
@@ -41,12 +42,6 @@
         <aside id="formula-panel" aria-label="公式助手" hidden></aside>
       </div>
       <aside id="usage-document" class="usage-document" aria-label="使用文档" hidden></aside>
-      <span
-        id="selection-debug"
-        class="visually-hidden"
-        data-testid="selection-debug"
-        aria-hidden="true"
-      >0:0</span>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

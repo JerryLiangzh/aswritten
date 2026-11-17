@@ -5,6 +5,8 @@
 import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
+const initTimeoutMs = 20000
+
 class VditorEditorAdapter implements EditorAdapter {
   constructor(
     private readonly vditor: Vditor,
@@ -48,23 +50,45 @@ class VditorEditorAdapter implements EditorAdapter {
 
 export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapter> {
   return new Promise((resolve, reject) => {
-    const vditor = new Vditor(container, {
-      cdn: '/vditor',
-      mode: 'sv',
-      cache: { enable: false },
-      preview: {
-        mode: 'both',
-        markdown: { sanitize: true, inlineMath: true },
-        math: { engine: 'KaTeX' },
-      },
-      after: () => {
-        const source = container.querySelector<HTMLTextAreaElement>('textarea')
-        if (!source) {
-          reject(new Error('Vditor SV 源码输入区不可用'))
-          return
-        }
-        resolve(new VditorEditorAdapter(vditor, source))
-      },
-    })
+    let settled = false
+    const timer = window.setTimeout(() => {
+      fail(new Error('Vditor 初始化超时，请检查网络或静态资源后重试'))
+    }, initTimeoutMs)
+
+    const succeed = (adapter: EditorAdapter) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      resolve(adapter)
+    }
+    const fail = (error: unknown) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      reject(error instanceof Error ? error : new Error('Vditor 初始化失败'))
+    }
+
+    try {
+      const vditor = new Vditor(container, {
+        cdn: '/vditor',
+        mode: 'sv',
+        cache: { enable: false },
+        preview: {
+          mode: 'both',
+          markdown: { sanitize: true, inlineMath: true },
+          math: { engine: 'KaTeX' },
+        },
+        after: () => {
+          const source = container.querySelector<HTMLTextAreaElement>('textarea')
+          if (!source) {
+            fail(new Error('Vditor SV 源码输入区不可用'))
+            return
+          }
+          succeed(new VditorEditorAdapter(vditor, source))
+        },
+      })
+    } catch (error) {
+      fail(error)
+    }
   })
 }
