@@ -92,6 +92,10 @@ const exportButton = requiredElement<HTMLButtonElement>('markdown-export')
 const importInput = requiredElement<HTMLInputElement>('markdown-import-input')
 const adapter = await createVditorAdapter(editorContainer)
 
+importButton.disabled = false
+exportButton.disabled = false
+panelToggle.disabled = false
+
 const setDocumentStatus = (message: string, isError = false) => {
   documentStatus.textContent = message
   documentStatus.dataset.status = isError ? 'error' : 'normal'
