@@ -95,6 +95,31 @@ export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapt
           render: { media: { enable: false } },
           transform: disableUnsafePreviewRenderers,
         },
+        link: {
+          isOpen: false,
+          click: anchor => {
+            const href = anchor.getAttribute('href')
+            if (!href) return
+
+            if (href.startsWith('#')) {
+              document.getElementById(href.slice(1))?.scrollIntoView()
+              return
+            }
+
+            let url: URL
+            try {
+              url = new URL(href, window.location.href)
+            } catch {
+              return
+            }
+
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+              return
+            }
+
+            window.open(url.href, '_blank', 'noopener,noreferrer')
+          },
+        },
         after: () => {
           const source = container.querySelector<HTMLTextAreaElement>('textarea')
           if (!source) {
