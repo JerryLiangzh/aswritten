@@ -6,7 +6,7 @@ import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
 const initTimeoutMs = 20000
-const disabledPreviewLanguages = ['echarts', 'mermaid', 'wavedrom'] as const
+const disabledPreviewLanguages = ['echarts', 'mermaid', 'plantuml', 'wavedrom'] as const
 
 function disableUnsafePreviewRenderers(html: string): string {
   const parsed = new DOMParser().parseFromString(html, 'text/html')
@@ -92,6 +92,7 @@ export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapt
           mode: 'both',
           markdown: { sanitize: true, inlineMath: true },
           math: { engine: 'KaTeX' },
+          render: { media: { enable: false } },
           transform: disableUnsafePreviewRenderers,
         },
         after: () => {
