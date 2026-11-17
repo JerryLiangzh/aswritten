@@ -112,6 +112,8 @@ let saveTimer: number | undefined
 let lastPersistedDocument: string | null = null
 let hasUnsavedChanges = false
 let hasSaveConflict = false
+let importOperationId = 0
+let editVersion = 0
 
 const persistDocument = () => {
   if (!hasUnsavedChanges) return true
@@ -152,6 +154,7 @@ if (storage) {
 
 adapter.onInput(() => {
   hasUnsavedChanges = true
+  editVersion += 1
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(persistDocument, 300)
 })
@@ -189,13 +192,23 @@ exportButton.addEventListener('click', () => {
 importInput.addEventListener('change', async () => {
   const file = importInput.files?.[0]
   if (!file) return
+  const operationId = ++importOperationId
   if (!window.confirm('导入将替换当前文档，是否继续？')) {
     importInput.value = ''
+    importButton.disabled = false
     return
   }
 
+  const startingEditVersion = editVersion
+  importButton.disabled = true
+
   try {
     const value = await readMarkdownFile(file)
+    if (operationId !== importOperationId) return
+    if (editVersion !== startingEditVersion) {
+      throw new Error('导入期间文档已修改，已取消导入并保留当前内容')
+    }
+
     adapter.setValue(value)
     adapter.focus()
     window.clearTimeout(saveTimer)
@@ -203,10 +216,14 @@ importInput.addEventListener('change', async () => {
     persistDocument()
     setDocumentStatus(`已导入 ${file.name}`)
   } catch (error) {
+    if (operationId !== importOperationId) return
     const message = error instanceof Error ? error.message : 'Markdown 导入失败'
     setDocumentStatus(message, true)
   } finally {
-    importInput.value = ''
+    if (operationId === importOperationId) {
+      importInput.value = ''
+      importButton.disabled = false
+    }
   }
 })
 
