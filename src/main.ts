@@ -90,6 +90,8 @@ const documentStatus = requiredElement('document-status')
 const importButton = requiredElement<HTMLButtonElement>('markdown-import')
 const exportButton = requiredElement<HTMLButtonElement>('markdown-export')
 const importInput = requiredElement<HTMLInputElement>('markdown-import-input')
+
+async function bootstrap() {
 const adapter = await createVditorAdapter(editorContainer)
 
 importButton.disabled = false
@@ -304,3 +306,9 @@ appShell.addEventListener('keyup', updateSelectionDebug)
 appShell.addEventListener('click', updateSelectionDebug)
 appShell.addEventListener('select', updateSelectionDebug, true)
 updateSelectionDebug()
+}
+
+void bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : '未知错误'
+  setDocumentStatus(`编辑器初始化失败：${message}`, true)
+})
