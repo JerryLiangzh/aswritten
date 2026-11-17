@@ -2,12 +2,31 @@ import type { EditorSnapshot, TextChange } from '../editor/types'
 import { detectFormulaContext } from './context'
 import type { FormulaMode, FormulaStyle } from './types'
 
-function wrapFormula(latex: string, mode: FormulaMode): string {
-  return mode === 'inline' ? `$${latex}$` : `$$\n${latex}\n$$`
+function blockLeadingNewline(text: string, from: number): string {
+  return from > 0 && !/(?:\r\n|\n)$/.test(text.slice(0, from)) ? '\n' : ''
 }
 
-function formulaPrefixLength(mode: FormulaMode): number {
-  return mode === 'inline' ? 1 : 3
+function blockTrailingNewline(text: string, to: number): string {
+  return to < text.length && !/^\r?\n/.test(text.slice(to)) ? '\n' : ''
+}
+
+function wrapFormula(
+  latex: string,
+  mode: FormulaMode,
+  text: string,
+  from: number,
+  to: number,
+): string {
+  if (mode === 'inline') return `$${latex}$`
+
+  const leading = blockLeadingNewline(text, from)
+  const trailing = blockTrailingNewline(text, to)
+  return `${leading}$$\n${latex}\n$$${trailing}`
+}
+
+function formulaPrefixLength(mode: FormulaMode, text: string, from: number): number {
+  if (mode === 'inline') return 1
+  return blockLeadingNewline(text, from).length + 3
 }
 
 function getSelectionContext(text: string, from: number, to: number) {
@@ -45,8 +64,8 @@ export function buildFormulaInsertion(
   return {
     from,
     to,
-    insert: wrapFormula(latex, mode),
-    cursor: from + formulaPrefixLength(mode) + latex.length,
+    insert: wrapFormula(latex, mode, text, from, to),
+    cursor: from + formulaPrefixLength(mode, text, from) + latex.length,
   }
 }
 
@@ -70,11 +89,11 @@ export function buildStyleChange(
   const change: TextChange = {
     from,
     to,
-    insert: inText ? wrapFormula(scope, mode) : scope,
+    insert: inText ? wrapFormula(scope, mode, text, from, to) : scope,
   }
 
   if (from === to) {
-    const prefixLength = inText ? formulaPrefixLength(mode) : 0
+    const prefixLength = inText ? formulaPrefixLength(mode, text, from) : 0
     change.cursor = from + prefixLength + command.length + 2
   }
 

@@ -93,6 +93,17 @@ describe('buildFormulaInsertion', () => {
     )).toEqual({ from: 7, to: 11, insert: '$x$', cursor: 7 })
   })
 
+  it('段落中间的独立公式补齐前后换行并正确计算光标', () => {
+    expect(buildFormulaInsertion(
+      { text: 'left right', from: 5, to: 5 }, '\\alpha', 'block',
+    )).toEqual({
+      from: 5,
+      to: 5,
+      insert: '\n$$\n\\alpha\n$$\n',
+      cursor: 15,
+    })
+  })
+
 describe('buildStyleChange', () => {
   it('有选区时用颜色和花括号包装', () => {
     expect(buildStyleChange(
