@@ -114,10 +114,15 @@ let hasUnsavedChanges = false
 let hasSaveConflict = false
 let importOperationId = 0
 let editVersion = 0
+let cacheReadFailed = false
 
 const persistDocument = () => {
   if (!hasUnsavedChanges) return true
   if (hasSaveConflict) return false
+  if (cacheReadFailed) {
+    setDocumentStatus('缓存读取失败，已暂停自动保存；请导出备份或刷新重试', true)
+    return false
+  }
   if (!storage) {
     setDocumentStatus('本地保存失败，请导出 Markdown 备份', true)
     return false
@@ -143,7 +148,8 @@ const persistDocument = () => {
 
 if (storage) {
   const cachedDocument = loadDocument(storage, () => {
-    setDocumentStatus('本地缓存读取失败，原缓存未被覆盖', true)
+    cacheReadFailed = true
+    setDocumentStatus('缓存读取失败，已暂停自动保存；请导出备份或刷新重试', true)
   })
   if (cachedDocument !== null) {
     adapter.setValue(cachedDocument)
@@ -172,6 +178,7 @@ window.addEventListener('storage', event => {
   adapter.setValue(event.newValue ?? '')
   window.clearTimeout(saveTimer)
   lastPersistedDocument = event.newValue
+  cacheReadFailed = false
   hasUnsavedChanges = false
   hasSaveConflict = false
   setDocumentStatus('已同步其他标签页的修改')
