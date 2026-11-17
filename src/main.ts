@@ -170,6 +170,7 @@ adapter.onInput(() => {
 window.addEventListener('storage', event => {
   if (event.key !== documentKey) return
   window.clearTimeout(saveTimer)
+  editVersion += 1
 
   if (hasUnsavedChanges) {
     hasSaveConflict = true
