@@ -89,7 +89,7 @@ describe('buildFormulaInsertion', () => {
 
   it('选中完整公式时不重复包装分隔符', () => {
     expect(buildFormulaInsertion(
-      { text: 'before $x$ after', from: 7, to: 11 }, '\\alpha', 'inline',
+      { text: 'before $x$ after', from: 7, to: 10 }, '\\alpha', 'inline',
     )).toEqual({ from: 7, to: 11, insert: '$x$', cursor: 7 })
   })
 
