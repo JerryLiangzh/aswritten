@@ -1,11 +1,21 @@
 const markdownExtension = /\.(?:md|markdown)$/i
+const defaultMaxBytes = 10 * 1024 * 1024
+const downloadUrlRevokeDelayMs = 1000
 
-export async function readMarkdownFile(file: File): Promise<string> {
+export async function readMarkdownFile(file: File, maxBytes = defaultMaxBytes): Promise<string> {
   if (!markdownExtension.test(file.name)) {
     throw new Error('仅支持 .md 或 .markdown 文件')
   }
+  if (file.size > maxBytes) {
+    throw new Error(`文件超过大小限制（${(maxBytes / 1024 / 1024).toFixed(1)} MB），请拆分或精简后导入`)
+  }
 
-  return file.text()
+  const buffer = await file.arrayBuffer()
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+  } catch {
+    throw new Error('文件不是有效的 UTF-8 编码，请另存为 UTF-8 后重试')
+  }
 }
 
 export function downloadMarkdown(filename: string, value: string): void {
@@ -20,6 +30,6 @@ export function downloadMarkdown(filename: string, value: string): void {
     anchor.click()
   } finally {
     anchor.remove()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), downloadUrlRevokeDelayMs)
   }
 }
