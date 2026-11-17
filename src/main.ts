@@ -96,6 +96,47 @@ const setDocumentStatus = (message: string, isError = false) => {
   documentStatus.dataset.status = isError ? 'error' : 'normal'
 }
 
+function mountUsageDocument() {
+  const usageHeader = document.createElement('div')
+  usageHeader.className = 'usage-document__header'
+  const usageTitle = document.createElement('h2')
+  usageTitle.id = 'usage-document-title'
+  usageTitle.textContent = '使用文档'
+  const usageClose = document.createElement('button')
+  usageClose.type = 'button'
+  usageClose.className = 'usage-document__close'
+  usageClose.setAttribute('aria-label', '关闭使用文档')
+  usageClose.textContent = '×'
+  usageHeader.append(usageTitle, usageClose)
+  const usageContent = document.createElement('div')
+  usageContent.className = 'usage-document__content'
+  for (const section of usageSections) {
+    const article = document.createElement('section')
+    article.id = `usage-${section.id}`
+    article.className = 'usage-document__section'
+    const title = document.createElement('h3')
+    title.textContent = section.title
+    article.append(title, renderUsageMarkdown(section.markdown))
+    usageContent.append(article)
+  }
+  usageDocument.setAttribute('aria-labelledby', usageTitle.id)
+  usageDocument.replaceChildren(usageHeader, usageContent)
+
+  const setUsageDocumentOpen = (open: boolean) => {
+      usageDocument.hidden = !open
+      usageDocumentToggle.setAttribute('aria-expanded', String(open))
+    }
+
+    usageDocumentToggle.addEventListener('click', () => {
+      setUsageDocumentOpen(usageDocument.hidden !== false)
+    })
+
+    usageClose.addEventListener('click', () => {
+      setUsageDocumentOpen(false)
+      usageDocumentToggle.focus()
+    })
+}
+
 async function bootstrap() {
 const adapter = await createVditorAdapter(editorContainer)
 
@@ -245,52 +286,15 @@ if (import.meta.env.DEV) {
 
 mountFormulaPanel(panel, adapter)
 
-const usageHeader = document.createElement('div')
-usageHeader.className = 'usage-document__header'
-const usageTitle = document.createElement('h2')
-usageTitle.id = 'usage-document-title'
-usageTitle.textContent = '使用文档'
-const usageClose = document.createElement('button')
-usageClose.type = 'button'
-usageClose.className = 'usage-document__close'
-usageClose.setAttribute('aria-label', '关闭使用文档')
-usageClose.textContent = '×'
-usageHeader.append(usageTitle, usageClose)
-const usageContent = document.createElement('div')
-usageContent.className = 'usage-document__content'
-for (const section of usageSections) {
-  const article = document.createElement('section')
-  article.id = `usage-${section.id}`
-  article.className = 'usage-document__section'
-  const title = document.createElement('h3')
-  title.textContent = section.title
-  article.append(title, renderUsageMarkdown(section.markdown))
-  usageContent.append(article)
-}
-usageDocument.setAttribute('aria-labelledby', usageTitle.id)
-usageDocument.replaceChildren(usageHeader, usageContent)
+
 
 const setPanelOpen = (open: boolean) => {
   panel.hidden = !open
   panelToggle.setAttribute('aria-expanded', String(open))
 }
 
-const setUsageDocumentOpen = (open: boolean) => {
-  usageDocument.hidden = !open
-  usageDocumentToggle.setAttribute('aria-expanded', String(open))
-}
-
 panelToggle.addEventListener('click', () => {
   setPanelOpen(panel.hidden !== false)
-})
-
-usageDocumentToggle.addEventListener('click', () => {
-  setUsageDocumentOpen(usageDocument.hidden !== false)
-})
-
-usageClose.addEventListener('click', () => {
-  setUsageDocumentOpen(false)
-  usageDocumentToggle.focus()
 })
 
 panel.addEventListener('formula-panel-close', () => {
@@ -309,6 +313,7 @@ appShell.addEventListener('select', updateSelectionDebug, true)
 updateSelectionDebug()
 }
 
+mountUsageDocument()
 void bootstrap().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : '未知错误'
   setDocumentStatus(`编辑器初始化失败：${message}`, true)
