@@ -213,8 +213,10 @@ importInput.addEventListener('change', async () => {
     adapter.focus()
     window.clearTimeout(saveTimer)
     hasUnsavedChanges = true
-    persistDocument()
-    setDocumentStatus(`已导入 ${file.name}`)
+    const saved = persistDocument()
+    if (saved) {
+      setDocumentStatus(`已导入并保存 ${file.name}`)
+    }
   } catch (error) {
     if (operationId !== importOperationId) return
     const message = error instanceof Error ? error.message : 'Markdown 导入失败'
