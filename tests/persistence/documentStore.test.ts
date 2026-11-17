@@ -76,9 +76,9 @@ describe('documentStore', () => {
     })
 
     expect(saveDocument(storage, '# 未保存', null)).toBe('error')
- })
+  })
 
-    it('缓存已被其他标签页修改时拒绝覆盖', () => {
+  it('缓存已被其他标签页修改时拒绝覆盖', () => {
     const storage = new MemoryStorage()
     storage.setItem(documentKey, '其他标签页的新内容')
 

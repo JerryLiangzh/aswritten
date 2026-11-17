@@ -79,7 +79,6 @@ describe('buildFormulaInsertion', () => {
       { text: '😀', from: 2, to: 2 }, 'x', 'inline',
     )).toEqual({ from: 2, to: 2, insert: '$x$', cursor: 4 })
   })
-})
 
   it('跨公式边界的选区保持原文', () => {
     expect(buildFormulaInsertion(
@@ -103,6 +102,7 @@ describe('buildFormulaInsertion', () => {
       cursor: 15,
     })
   })
+})
 
 describe('buildStyleChange', () => {
   it('有选区时用颜色和花括号包装', () => {

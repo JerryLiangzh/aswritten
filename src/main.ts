@@ -181,7 +181,7 @@ const persistDocument = () => {
   if (result === 'error') {
     setDocumentStatus('本地保存失败，请导出 Markdown 备份', true)
     return false
-   }
+  }
 
   lastPersistedDocument = value
   hasUnsavedChanges = false
