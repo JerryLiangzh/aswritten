@@ -204,7 +204,7 @@ test('确认导入后更新编辑器并持久化', async ({ page }) => {
     buffer: Buffer.from(value),
   })
   await expect(source).toHaveValue(value)
-  await expect(page.locator('#document-status')).toHaveText('已导入 imported.md')
+  await expect(page.locator('#document-status')).toHaveText('已导入并保存 imported.md')
   await page.reload()
   await expect(source).toHaveValue(value)
 })
