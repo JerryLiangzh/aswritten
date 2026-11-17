@@ -57,3 +57,26 @@ test('关键同源运行资源没有失败响应', async ({ page }, testInfo) =>
   await expect(page.locator('.vditor-preview .katex')).toBeVisible()
   expect(failures).toEqual([])
 })
+
+for (const language of ['echarts', 'wavedrom'] as const) {
+  test(`${language} 代码块只显示原文且不执行`, async ({ page }) => {
+    await page.goto('/')
+    const source = page.locator('#editor textarea')
+    const value = [
+      `\`\`\`${language}`,
+      '(() => { window.__xss = 1; return {}; })()',
+      '```',
+    ].join('\n')
+
+    await source.fill(value)
+    await expect(
+      page.locator(`.vditor-preview [data-render-disabled="${language}"]`),
+    ).toHaveAttribute('data-render-disabled', language)
+
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __xss?: number }).__xss,
+      ),
+    ).toBeUndefined()
+  })
+}

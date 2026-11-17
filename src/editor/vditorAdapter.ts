@@ -6,6 +6,21 @@ import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
 const initTimeoutMs = 20000
+const disabledPreviewLanguages = ['echarts', 'mermaid', 'wavedrom'] as const
+
+function disableUnsafePreviewRenderers(html: string): string {
+  const parsed = new DOMParser().parseFromString(html, 'text/html')
+
+  for (const language of disabledPreviewLanguages) {
+    const className = `language-${language}`
+    for (const element of parsed.querySelectorAll(`.${className}`)) {
+      element.classList.remove(className)
+      element.classList.add('language-plaintext')
+      element.setAttribute('data-render-disabled', language)
+    }
+  }
+  return parsed.body.innerHTML
+}
 
 class VditorEditorAdapter implements EditorAdapter {
   constructor(
@@ -77,6 +92,7 @@ export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapt
           mode: 'both',
           markdown: { sanitize: true, inlineMath: true },
           math: { engine: 'KaTeX' },
+          transform: disableUnsafePreviewRenderers,
         },
         after: () => {
           const source = container.querySelector<HTMLTextAreaElement>('textarea')
