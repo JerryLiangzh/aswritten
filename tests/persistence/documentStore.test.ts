@@ -40,7 +40,7 @@ describe('documentStore', () => {
     const storage = new MemoryStorage()
     const value = '# 中文标题\n\n$\\frac{a}{b}$ 与 ${\\color{red} x+y}$'
 
-    expect(saveDocument(storage, value)).toBe(true)
+    expect(saveDocument(storage, value, null)).toBe('saved')
     expect(storage.getItem(documentKey)).toBe(value)
     expect(loadDocument(storage)).toBe(value)
   })
@@ -69,12 +69,32 @@ describe('documentStore', () => {
     expect(onError).toHaveBeenCalledWith(error)
   })
 
-  it('写入异常时返回 false', () => {
+  it('写入异常时返回 error', () => {
     const storage = new MemoryStorage()
     vi.spyOn(storage, 'setItem').mockImplementation(() => {
       throw new DOMException('quota exceeded', 'QuotaExceededError')
     })
 
-    expect(saveDocument(storage, '# 未保存')).toBe(false)
+    expect(saveDocument(storage, '# 未保存', null)).toBe('error')
+ })
+
+    it('缓存已被其他标签页修改时拒绝覆盖', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '其他标签页的新内容')
+
+    expect(saveDocument(storage, '当前标签页的旧内容', '原缓存')).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBe('其他标签页的新内容')
+  })
+
+  it('保存前读取失败时不继续写入', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '原缓存')
+    const setItem = vi.spyOn(storage, 'setItem')
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage unavailable')
+    })
+
+    expect(saveDocument(storage, '新内容', '原缓存')).toBe('error')
+    expect(setItem).not.toHaveBeenCalled()
   })
 })

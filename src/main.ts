@@ -4,7 +4,7 @@ import { usageSections } from './docs/usage'
 import { createVditorAdapter } from './editor/vditorAdapter'
 import { downloadMarkdown, readMarkdownFile } from './files/markdownFile'
 import { mountFormulaPanel } from './formula/FormulaPanel'
-import { loadDocument, saveDocument } from './persistence/documentStore'
+import { documentKey, loadDocument, saveDocument } from './persistence/documentStore'
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -109,12 +109,34 @@ try {
 }
 
 let saveTimer: number | undefined
+let lastPersistedDocument: string | null = null
+let hasUnsavedChanges = false
+let hasSaveConflict = false
+
 const persistDocument = () => {
-  if (!storage || !saveDocument(storage, adapter.getValue())) {
+  if (!hasUnsavedChanges) return true
+  if (hasSaveConflict) return false
+  if (!storage) {
     setDocumentStatus('本地保存失败，请导出 Markdown 备份', true)
-    return
+    return false
   }
+
+  const value = adapter.getValue()
+  const result = saveDocument(storage, value, lastPersistedDocument)
+  if (result === 'conflict') {
+    hasSaveConflict = true
+    setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+    return false
+  }
+  if (result === 'error') {
+    setDocumentStatus('本地保存失败，请导出 Markdown 备份', true)
+    return false
+   }
+
+  lastPersistedDocument = value
+  hasUnsavedChanges = false
   setDocumentStatus('已保存')
+  return true
 }
 
 if (storage) {
@@ -123,13 +145,33 @@ if (storage) {
   })
   if (cachedDocument !== null) {
     adapter.setValue(cachedDocument)
+    lastPersistedDocument = cachedDocument
     setDocumentStatus('已恢复本地文档')
   }
 }
 
 adapter.onInput(() => {
+  hasUnsavedChanges = true
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(persistDocument, 300)
+})
+
+window.addEventListener('storage', event => {
+  if (event.key !== documentKey) return
+  window.clearTimeout(saveTimer)
+
+  if (hasUnsavedChanges) {
+    hasSaveConflict = true
+    setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+    return
+  }
+
+  adapter.setValue(event.newValue ?? '')
+  window.clearTimeout(saveTimer)
+  lastPersistedDocument = event.newValue
+  hasUnsavedChanges = false
+  hasSaveConflict = false
+  setDocumentStatus('已同步其他标签页的修改')
 })
 
 window.addEventListener('beforeunload', persistDocument)
@@ -157,6 +199,7 @@ importInput.addEventListener('change', async () => {
     adapter.setValue(value)
     adapter.focus()
     window.clearTimeout(saveTimer)
+    hasUnsavedChanges = true
     persistDocument()
     setDocumentStatus(`已导入 ${file.name}`)
   } catch (error) {
