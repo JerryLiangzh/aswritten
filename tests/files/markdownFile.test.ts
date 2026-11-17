@@ -19,6 +19,18 @@ describe('readMarkdownFile', () => {
 
     await expect(readMarkdownFile(file)).rejects.toThrow('仅支持 .md 或 .markdown 文件')
   })
+
+  it('超过大小限制时拒绝读取', async () => {
+    const file = new File(['12345'], 'note.md', { type: 'text/markdown' })
+
+    await expect(readMarkdownFile(file, 4)).rejects.toThrow('文件超过大小限制')
+  })
+
+  it('拒绝非 UTF-8 编码文件', async () => {
+    const file = new File([new Uint8Array([0xff, 0xfe, 0xfd])], 'note.md', { type: 'text/markdown' })
+
+    await expect(readMarkdownFile(file)).rejects.toThrow('文件不是有效的 UTF-8 编码')
+  })
 })
 
 describe('downloadMarkdown', () => {
