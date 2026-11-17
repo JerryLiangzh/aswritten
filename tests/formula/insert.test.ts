@@ -81,6 +81,18 @@ describe('buildFormulaInsertion', () => {
   })
 })
 
+  it('跨公式边界的选区保持原文', () => {
+    expect(buildFormulaInsertion(
+      { text: '$x$ tail', from: 1, to: 3 }, '\\alpha', 'inline',
+    )).toEqual({ from: 1, to: 3, insert: 'x$', cursor: 1 })
+  })
+
+  it('选中完整公式时不重复包装分隔符', () => {
+    expect(buildFormulaInsertion(
+      { text: 'before $x$ after', from: 7, to: 11 }, '\\alpha', 'inline',
+    )).toEqual({ from: 7, to: 11, insert: '$x$', cursor: 7 })
+  })
+
 describe('buildStyleChange', () => {
   it('有选区时用颜色和花括号包装', () => {
     expect(buildStyleChange(
@@ -153,5 +165,13 @@ describe('buildStyleChange', () => {
     )
     expect(change.insert).toBe('{\\color{blue} }')
     expect(change.insert).not.toContain('$$')
+  })
+  
+  it('样式操作遇到跨边界选区时保持原文', () => {
+    expect(buildStyleChange(
+      { text: '$x$ tail', from: 1, to: 3 },
+      { kind: 'color', value: 'red' },
+      'inline',
+    )).toEqual({ from: 1, to: 3, insert: 'x$', cursor: 1 })
   })
 })
