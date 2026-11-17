@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { downloadMarkdown, readMarkdownFile } from '../../src/files/markdownFile'
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -22,6 +23,7 @@ describe('readMarkdownFile', () => {
 
 describe('downloadMarkdown', () => {
   it('导出 UTF-8 Markdown 并清理临时元素和 URL', async () => {
+    vi.useFakeTimers()
     const value = '# 导出\n\n$\\frac{a}{b}$ 与 ${\\color{blue} x}$'
     const click = vi.fn()
     const remove = vi.fn()
@@ -44,6 +46,8 @@ describe('downloadMarkdown', () => {
     expect(anchor.href).toBe('blob:markdown-test')
     expect(click).toHaveBeenCalledOnce()
     expect(remove).toHaveBeenCalledOnce()
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1000)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:markdown-test')
     const blob = createObjectURL.mock.calls[0][0]
     expect(blob.type).toBe('text/markdown;charset=utf-8')
