@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { loadDocument, saveDocument } from '../../src/persistence/documentStore'
+import { loadDocument, saveDocument, saveDocumentExclusive } from '../../src/persistence/documentStore'
 
 const documentKey = 'aswritten:document:v1'
 
@@ -96,5 +96,12 @@ describe('documentStore', () => {
 
     expect(saveDocument(storage, '新内容', '原缓存')).toBe('error')
     expect(setItem).not.toHaveBeenCalled()
+  })
+
+  it('不支持 Web Locks 时拒绝不安全的自动写入', async () => {
+    const storage = new MemoryStorage()
+
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('unsupported')
+    expect(storage.getItem(documentKey)).toBeNull()
   })
 })

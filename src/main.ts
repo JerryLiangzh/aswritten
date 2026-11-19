@@ -4,7 +4,7 @@ import { usageSections } from './docs/usage'
 import { createVditorAdapter } from './editor/vditorAdapter'
 import { downloadMarkdown, readMarkdownFile } from './files/markdownFile'
 import { mountFormulaPanel } from './formula/FormulaPanel'
-import { documentKey, loadDocument, saveDocument } from './persistence/documentStore'
+import { documentKey, loadDocument, saveDocumentExclusive } from './persistence/documentStore'
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -158,8 +158,10 @@ let hasSaveConflict = false
 let importOperationId = 0
 let editVersion = 0
 let cacheReadFailed = false
+let saveQueue: Promise<boolean> = Promise.resolve(true)
 
-const persistDocument = () => {
+const persistDocument = (): Promise<boolean> => {
+  const save = async (): Promise<boolean> => {
   if (!hasUnsavedChanges) return true
   if (hasSaveConflict) return false
   if (cacheReadFailed) {
@@ -171,11 +173,21 @@ const persistDocument = () => {
     return false
   }
 
+  const targetStorage = storage
   const value = adapter.getValue()
-  const result = saveDocument(storage, value, lastPersistedDocument)
+  const result = await saveDocumentExclusive(
+    targetStorage,
+    navigator.locks,
+    value,
+    lastPersistedDocument,
+  )
   if (result === 'conflict') {
     hasSaveConflict = true
     setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+    return false
+  }
+  if (result === 'unsupported') {
+    setDocumentStatus('当前浏览器不支持安全的多标签保存，请导出 Markdown 备份', true)
     return false
   }
   if (result === 'error') {
@@ -183,10 +195,14 @@ const persistDocument = () => {
     return false
   }
 
-  lastPersistedDocument = value
-  hasUnsavedChanges = false
+  hasUnsavedChanges = adapter.getValue() !== value
+  setDocumentStatus(hasUnsavedChanges ? '有尚未保存的修改' : '已保存')
   setDocumentStatus('已保存')
   return true
+  }
+
+  saveQueue = saveQueue.then(save, save)
+  return saveQueue
 }
 
 if (storage) {
@@ -205,7 +221,7 @@ adapter.onInput(() => {
   hasUnsavedChanges = true
   editVersion += 1
   window.clearTimeout(saveTimer)
-  saveTimer = window.setTimeout(persistDocument, 300)
+  saveTimer = window.setTimeout(() => void persistDocument(), 300)
 })
 
 window.addEventListener('storage', event => {
@@ -228,7 +244,14 @@ window.addEventListener('storage', event => {
   setDocumentStatus('已同步其他标签页的修改')
 })
 
-window.addEventListener('beforeunload', persistDocument)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    void persistDocument()
+  }
+})
+window.addEventListener('beforeunload', () => {
+  void persistDocument()
+})
 
 importButton.addEventListener('click', () => {
   importInput.value = ''
@@ -264,7 +287,7 @@ importInput.addEventListener('change', async () => {
     adapter.focus()
     window.clearTimeout(saveTimer)
     hasUnsavedChanges = true
-    const saved = persistDocument()
+    const saved = await persistDocument()
     if (saved) {
       setDocumentStatus(`已导入并保存 ${file.name}`)
     }
