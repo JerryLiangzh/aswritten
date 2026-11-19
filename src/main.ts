@@ -138,7 +138,10 @@ function mountUsageDocument() {
 }
 
 async function bootstrap() {
-const adapter = await createVditorAdapter(editorContainer)
+const adapter = await createVditorAdapter(editorContainer, () => {
+  setDocumentStatus('编辑器初始化时间较长，仍在等待；如持续无响应请刷新重试', true)
+})
+setDocumentStatus('编辑器已就绪')
 
 importButton.disabled = false
 exportButton.disabled = false

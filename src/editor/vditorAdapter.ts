@@ -86,11 +86,14 @@ class VditorEditorAdapter implements EditorAdapter {
   }
 }
 
-export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapter> {
+export function createVditorAdapter(
+  container: HTMLElement,
+  onSlowInitialization?: () => void,
+): Promise<EditorAdapter> {
   return new Promise((resolve, reject) => {
     let settled = false
     const timer = window.setTimeout(() => {
-      fail(new Error('Vditor 初始化超时，请检查网络或静态资源后重试'))
+      onSlowInitialization?.()
     }, initTimeoutMs)
 
     const succeed = (adapter: EditorAdapter) => {
