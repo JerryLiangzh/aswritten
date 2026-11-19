@@ -22,6 +22,29 @@ function disableUnsafePreviewRenderers(html: string): string {
   return parsed.body.innerHTML
 }
 
+function openSafeLink(anchor: HTMLAnchorElement): void {
+  const href = anchor.getAttribute('href')
+  if (!href) return
+
+  if (href.startsWith('#')) {
+    document.getElementById(href.slice(1))?.scrollIntoView()
+    return
+  }
+
+  let url: URL
+  try {
+    url = new URL(href, window.location.href)
+  } catch {
+    return
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return
+  }
+
+  window.open(url.href, '_blank', 'noopener,noreferrer')
+}
+
 class VditorEditorAdapter implements EditorAdapter {
   constructor(
     private readonly vditor: Vditor,
@@ -83,6 +106,18 @@ export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapt
       reject(error instanceof Error ? error : new Error('Vditor 初始化失败'))
     }
 
+    container.addEventListener('click', event => {
+      if (!(event.target instanceof Element)) return
+      const anchor = event.target.closest<HTMLAnchorElement>(
+        '.vditor-preview a[href]',
+      )
+      if (!anchor) return
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      openSafeLink(anchor)
+    }, true)
+
     try {
       const vditor = new Vditor(container, {
         cdn: '/vditor',
@@ -95,31 +130,7 @@ export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapt
           render: { media: { enable: false } },
           transform: disableUnsafePreviewRenderers,
         },
-        link: {
-          isOpen: false,
-          click: anchor => {
-            const href = anchor.getAttribute('href')
-            if (!href) return
-
-            if (href.startsWith('#')) {
-              document.getElementById(href.slice(1))?.scrollIntoView()
-              return
-            }
-
-            let url: URL
-            try {
-              url = new URL(href, window.location.href)
-            } catch {
-              return
-            }
-
-            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-              return
-            }
-
-            window.open(url.href, '_blank', 'noopener,noreferrer')
-          },
-        },
+        link: { isOpen: false },
         after: () => {
           const source = container.querySelector<HTMLTextAreaElement>('textarea')
           if (!source) {

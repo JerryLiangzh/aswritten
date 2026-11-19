@@ -80,3 +80,18 @@ for (const language of ['echarts', 'wavedrom'] as const) {
     ).toBeUndefined()
   })
 }
+
+test('格式化链接中的子元素也使用安全打开逻辑', async ({ page }) => {
+  await page.route('https://github.com/**/*', route => route.fulfill({ body: 'ok' }))
+  await page.goto('/')
+  await page.locator('#editor textarea').fill('[**外部链接**](https://github.com/)')
+
+  const popupEvent = page.waitForEvent('popup')
+  await page.locator('.vditor-preview a strong').click()
+  const popup = await popupEvent
+
+  await popup.waitForLoadState()
+  expect(popup.url()).toBe('https://github.com/')
+  expect(await popup.evaluate(() => window.opener)).toBeNull()
+  await popup.close()
+})
