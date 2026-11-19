@@ -239,3 +239,33 @@ test('本地保存失败时仍可编辑并导出备份', async ({ page }) => {
   if (!path) throw new Error('下载文件路径不可用')
   expect(await readFile(path, 'utf8')).toBe(value)
 })
+
+test('Chromium 双页面并发编辑时仅一个页面保存成功', async ({ page, context, browserName }) => {
+  test.skip(browserName !== 'chromium', '双页面并发场景只在 Chromium 中验证')
+
+  const pageA = page
+  const pageB = await context.newPage()
+  await Promise.all([pageA.goto('/'), pageB.goto('/')])
+
+  const sourceA = pageA.locator('#editor textarea')
+  const sourceB = pageB.locator('#editor textarea')
+  await Promise.all([expect(sourceA).toBeVisible(), expect(sourceB).toBeVisible()])
+
+  const valueA = '# 页面 A\n\n并发修改 A'
+  const valueB = '# 页面 B\n\n并发修改 B'
+  await Promise.all([sourceA.fill(valueA), sourceB.fill(valueB)])
+
+  const statusA = pageA.locator('#document-status')
+  const statusB = pageB.locator('#document-status')
+  const conflictMessage = '其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新'
+
+  await pageA.evaluate(() => {
+    window.dispatchEvent(new Event('beforeunload'))
+  })
+
+  await expect(statusA).toHaveText('已保存')
+  await expect(statusB).toHaveText(conflictMessage)
+  await expect(sourceA).toHaveValue(valueA)
+  await expect(sourceB).toHaveValue(valueB)
+  expect(await pageA.evaluate(() => localStorage.getItem('aswritten:document:v1'))).toBe(valueA)
+})
