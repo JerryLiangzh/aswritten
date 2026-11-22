@@ -81,8 +81,8 @@ for (const language of ['echarts', 'wavedrom'] as const) {
   })
 }
 
-test('格式化链接中的子元素也使用安全打开逻辑', async ({ page }) => {
-  await page.route('https://github.com/**/*', route => route.fulfill({ body: 'ok' }))
+test('格式化链接中的子元素也使用安全打开逻辑', async ({ page, context }) => {
+  await context.route('https://github.com/**/*', route => route.fulfill({ body: 'ok' }))
   await page.goto('/')
   await page.locator('#editor textarea').fill('[**外部链接**](https://github.com/)')
 
