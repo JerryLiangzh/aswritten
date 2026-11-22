@@ -6,7 +6,10 @@ import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
 const initTimeoutMs = 20000
-const disabledPreviewLanguages = ['echarts', 'mermaid', 'plantuml', 'wavedrom'] as const
+const disabledPreviewLanguages = [
+  'echarts', 'mermaid', 'plantuml', 'wavedrom',
+  'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
+] as const
 
 function disableUnsafePreviewRenderers(html: string): string {
   const parsed = new DOMParser().parseFromString(html, 'text/html')

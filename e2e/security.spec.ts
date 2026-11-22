@@ -58,7 +58,9 @@ test('关键同源运行资源没有失败响应', async ({ page }, testInfo) =>
   expect(failures).toEqual([])
 })
 
-for (const language of ['echarts', 'wavedrom'] as const) {
+for (const language of [
+  'echarts', 'wavedrom', 'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
+] as const) {
   test(`${language} 代码块只显示原文且不执行`, async ({ page }) => {
     await page.goto('/')
     const source = page.locator('#editor textarea')
