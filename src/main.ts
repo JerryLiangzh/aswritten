@@ -87,6 +87,7 @@ const usageDocument = requiredElement('usage-document')
 const usageDocumentToggle = requiredElement<HTMLButtonElement>('usage-document-toggle')
 const selectionDebug = requiredElement('selection-debug')
 const documentStatus = requiredElement('document-status')
+const reloadButton = requiredElement<HTMLButtonElement>('document-reload')
 const importButton = requiredElement<HTMLButtonElement>('markdown-import')
 const exportButton = requiredElement<HTMLButtonElement>('markdown-export')
 const importInput = requiredElement<HTMLInputElement>('markdown-import-input')
@@ -163,6 +164,12 @@ let editVersion = 0
 let cacheReadFailed = false
 let saveQueue: Promise<boolean> = Promise.resolve(true)
 
+const enterSaveConflict = () => {
+  hasSaveConflict = true
+  reloadButton.hidden = false
+  setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+}
+
 const persistDocument = (): Promise<boolean> => {
   const save = async (): Promise<boolean> => {
   if (!hasUnsavedChanges) return true
@@ -185,8 +192,7 @@ const persistDocument = (): Promise<boolean> => {
     lastPersistedDocument,
   )
   if (result === 'conflict') {
-    hasSaveConflict = true
-    setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+    enterSaveConflict()
     return false
   }
   if (result === 'unsupported') {
@@ -233,8 +239,7 @@ window.addEventListener('storage', event => {
   editVersion += 1
 
   if (hasUnsavedChanges) {
-    hasSaveConflict = true
-    setDocumentStatus('其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新', true)
+    enterSaveConflict()
     return
   }
 
@@ -244,6 +249,7 @@ window.addEventListener('storage', event => {
   cacheReadFailed = false
   hasUnsavedChanges = false
   hasSaveConflict = false
+  reloadButton.hidden = true
   setDocumentStatus('已同步其他标签页的修改')
 })
 
@@ -270,6 +276,11 @@ importButton.addEventListener('click', () => {
 exportButton.addEventListener('click', () => {
   downloadMarkdown('document.md', adapter.getValue())
   setDocumentStatus('已导出 Markdown')
+})
+
+reloadButton.addEventListener('click', () => {
+  downloadMarkdown('document-backup.md', adapter.getValue())
+  window.location.reload()
 })
 
 importInput.addEventListener('change', async () => {
