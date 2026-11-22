@@ -4,7 +4,7 @@ import { usageSections } from './docs/usage'
 import { createVditorAdapter } from './editor/vditorAdapter'
 import { downloadMarkdown, readMarkdownFile } from './files/markdownFile'
 import { mountFormulaPanel } from './formula/FormulaPanel'
-import { documentKey, loadDocument, saveDocumentExclusive } from './persistence/documentStore'
+import { documentKey, loadDocument, saveDocument, saveDocumentExclusive } from './persistence/documentStore'
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -253,7 +253,13 @@ document.addEventListener('visibilitychange', () => {
   }
 })
 window.addEventListener('beforeunload', () => {
-  void persistDocument()
+  if (!storage || !hasUnsavedChanges || hasSaveConflict || cacheReadFailed) return
+  const value = adapter.getValue()
+  if (saveDocument(storage, value, lastPersistedDocument) === 'saved') {
+    lastPersistedDocument = value
+    hasUnsavedChanges = false
+    setDocumentStatus('已保存')
+  }
 })
 
 importButton.addEventListener('click', () => {
