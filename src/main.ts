@@ -198,6 +198,7 @@ const persistDocument = (): Promise<boolean> => {
     return false
   }
 
+  lastPersistedDocument = value
   hasUnsavedChanges = adapter.getValue() !== value
   setDocumentStatus(hasUnsavedChanges ? '有尚未保存的修改' : '已保存')
   setDocumentStatus('已保存')

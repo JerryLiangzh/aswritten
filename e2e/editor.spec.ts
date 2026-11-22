@@ -180,6 +180,20 @@ test('刷新后恢复当前 Markdown 文档', async ({ page }) => {
   await expect(source).toHaveValue(value)
 })
 
+test('同一页面连续多次编辑均能保存', async ({ page }) => {
+  await page.goto('/')
+  const source = page.locator('#editor textarea')
+  const status = page.locator('#document-status')
+  const stored = () => page.evaluate(() => localStorage.getItem('aswritten:document:v1'))
+  await source.fill('第一次编辑')
+  await expect(status).toHaveText('已保存')
+  await source.fill('第一次编辑 + 第二次编辑')
+  await expect.poll(stored).toBe('第一次编辑 + 第二次编辑')
+  await expect(status).toHaveText('已保存')
+  await page.reload()
+  await expect(source).toHaveValue('第一次编辑 + 第二次编辑')
+})
+
 test('取消导入不会替换当前文档', async ({ page }) => {
   await page.goto('/')
   const source = page.locator('#editor textarea')
