@@ -71,7 +71,8 @@ test('HTTPS 远程图片可以在预览中加载', async ({ page }) => {
 })
 
 for (const language of [
-  'echarts', 'wavedrom', 'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
+  'echarts', 'mermaid', 'plantuml', 'wavedrom',
+  'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
 ] as const) {
   test(`${language} 代码块只显示原文且不执行`, async ({ page }) => {
     await page.goto('/')
