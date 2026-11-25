@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 
 test('分屏编辑器通过 DEV 适配器桥接源码、选区和预览', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'production', '生产构建不暴露 DEV 适配器')
   const baseURL = testInfo.project.use.baseURL
   if (typeof baseURL !== 'string') throw new Error('Playwright baseURL 未配置')
   const appOrigin = new URL(baseURL).origin
