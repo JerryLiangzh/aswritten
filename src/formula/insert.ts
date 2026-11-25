@@ -34,7 +34,8 @@ function getSelectionContext(text: string, from: number, to: number) {
   if (from === to) return startContext
 
   const endContext = detectFormulaContext(text, to)
-  const containsDelimiter = /[$`~]/.test(text.slice(from, to))
+  const unescapedSelection = text.slice(from, to).replace(/\\./g, '')
+  const containsDelimiter = /[$`]/.test(unescapedSelection) || unescapedSelection.includes('~~~')
   return startContext === endContext && !containsDelimiter ? startContext : 'mixed'
 }
 

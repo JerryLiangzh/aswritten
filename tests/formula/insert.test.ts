@@ -74,6 +74,17 @@ describe('buildFormulaInsertion', () => {
     ).insert).toBe('$x$')
   })
 
+  it.each(['x ~ y', '\\$5'])('普通分隔字符选区 %s 仍可插入公式', text => {
+    expect(buildFormulaInsertion(
+      { text, from: 0, to: text.length }, '\\alpha', 'inline',
+    ).insert).toBe('$\\alpha$')
+
+    expect(buildStyleChange(
+      { text, from: 0, to: text.length },
+      { kind: 'color', value: 'red' }, 'inline',
+    ).insert).toBe(`\${\\color{red} ${text}}$`)
+  })
+
   it('光标计算保持 UTF-16 偏移', () => {
     expect(buildFormulaInsertion(
       { text: '😀', from: 2, to: 2 }, 'x', 'inline',
