@@ -4,7 +4,7 @@ import { usageSections } from './docs/usage'
 import { createVditorAdapter } from './editor/vditorAdapter'
 import { downloadMarkdown, readMarkdownFile } from './files/markdownFile'
 import { mountFormulaPanel } from './formula/FormulaPanel'
-import { documentKey, loadDocument, saveDocument, saveDocumentExclusive } from './persistence/documentStore'
+import { documentKey, loadDocument, saveDocumentExclusive } from './persistence/documentStore'
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -207,7 +207,7 @@ const persistDocument = (): Promise<boolean> => {
   lastPersistedDocument = value
   hasUnsavedChanges = adapter.getValue() !== value
   setDocumentStatus(hasUnsavedChanges ? '有尚未保存的修改' : '已保存')
-  return true
+  return !hasUnsavedChanges
   }
 
   saveQueue = saveQueue.then(save, save)
@@ -229,6 +229,7 @@ if (storage) {
 adapter.onInput(() => {
   hasUnsavedChanges = true
   editVersion += 1
+  setDocumentStatus('有尚未保存的修改')
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => void persistDocument(), 300)
 })
@@ -258,14 +259,10 @@ document.addEventListener('visibilitychange', () => {
     void persistDocument()
   }
 })
-window.addEventListener('beforeunload', () => {
-  if (!storage || !hasUnsavedChanges || hasSaveConflict || cacheReadFailed) return
-  const value = adapter.getValue()
-  if (saveDocument(storage, value, lastPersistedDocument) === 'saved') {
-    lastPersistedDocument = value
-    hasUnsavedChanges = false
-    setDocumentStatus('已保存')
-  }
+window.addEventListener('beforeunload', event => {
+  if (!hasUnsavedChanges) return
+  event.preventDefault()
+  event.returnValue = ''
 })
 
 importButton.addEventListener('click', () => {

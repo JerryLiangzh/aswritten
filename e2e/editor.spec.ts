@@ -273,13 +273,21 @@ test('Chromium 双页面并发编辑时仅一个页面保存成功', async ({ pa
   const statusB = pageB.locator('#document-status')
   const conflictMessage = '其他标签页已修改文档，当前内容未覆盖缓存，请导出备份后刷新'
 
-  await pageA.evaluate(() => {
-    window.dispatchEvent(new Event('beforeunload'))
-  })
+  await expect.poll(async () => [
+    await statusA.textContent(),
+    await statusB.textContent(),
+  ]).toEqual(expect.arrayContaining(['已保存', conflictMessage]))
 
-  await expect(statusA).toHaveText('已保存')
-  await expect(statusB).toHaveText(conflictMessage)
   await expect(sourceA).toHaveValue(valueA)
   await expect(sourceB).toHaveValue(valueB)
-  expect(await pageA.evaluate(() => localStorage.getItem('aswritten:document:v1'))).toBe(valueA)
+  const winnerValue = await statusA.textContent() === '已保存' ? valueA : valueB
+  expect(await pageA.evaluate(() => localStorage.getItem('aswritten:document:v1'))).toBe(winnerValue)
+
+  const conflictedPage = await statusA.textContent() === conflictMessage ? pageA : pageB
+  const prevented = await conflictedPage.evaluate(() => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  })
+  expect(prevented).toBe(true)
 })
