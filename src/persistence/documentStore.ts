@@ -1,7 +1,6 @@
 export const documentKey = 'aswritten:document:v1'
 
 export type SaveDocumentResult = 'saved' | 'conflict' | 'error'
-export type ExclusiveSaveResult = SaveDocumentResult | 'unsupported'
 
 export function loadDocument(storage: Storage, onError?: (error: unknown) => void): string | null {
   try {
@@ -33,8 +32,8 @@ export async function saveDocumentExclusive(
   locks: LockManager | undefined,
   value: string,
   expectedValue: string | null,
-): Promise<ExclusiveSaveResult> {
-  if (!locks) return 'unsupported'
+): Promise<SaveDocumentResult> {
+  if (!locks) return saveDocument(storage, value, expectedValue)
 
   try {
     return await locks.request(

@@ -39,4 +39,4 @@ npx wrangler deploy
 ## Storage
 
 Documents are persisted to `localStorage` under `aswritten:document:v1`.
-Cross-tab saves are serialized with the Web Locks API; use `导出 Markdown` to back up your work.
+Cross-tab saves use the Web Locks API when available and fall back to expected-value conflict checks otherwise; use `导出 Markdown` to back up your work.

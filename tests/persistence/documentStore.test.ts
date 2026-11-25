@@ -98,10 +98,12 @@ describe('documentStore', () => {
     expect(setItem).not.toHaveBeenCalled()
   })
 
-  it('不支持 Web Locks 时拒绝不安全的自动写入', async () => {
+  it('不支持 Web Locks 时使用期望值检查降级保存', async () => {
     const storage = new MemoryStorage()
 
-    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('unsupported')
-    expect(storage.getItem(documentKey)).toBeNull()
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
+    expect(storage.getItem(documentKey)).toBe('新内容')
+    expect(await saveDocumentExclusive(storage, undefined, '旧页面内容', null)).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBe('新内容')
   })
 })

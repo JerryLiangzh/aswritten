@@ -195,10 +195,6 @@ const persistDocument = (): Promise<boolean> => {
     enterSaveConflict()
     return false
   }
-  if (result === 'unsupported') {
-    setDocumentStatus('当前浏览器不支持安全的多标签保存，请导出 Markdown 备份', true)
-    return false
-  }
   if (result === 'error') {
     setDocumentStatus('本地保存失败，请导出 Markdown 备份', true)
     return false
