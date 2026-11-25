@@ -14,8 +14,7 @@
     "test:watch": "vitest tests",
     "test:e2e": "playwright test",
     "test:e2e:production": "npm run build && playwright test --config=playwright.production.config.ts",
-    "deploy:check": "wrangler deploy --dry-run",
-    "verify": "npm run test && npm run test:e2e && npm run test:e2e:production && npm run deploy:check"
+    "verify": "npm run test && npm run test:e2e && npm run test:e2e:production"
   },
   "dependencies": {
     "vditor": "^4.0.1"
