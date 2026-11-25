@@ -58,6 +58,18 @@ test('关键同源运行资源没有失败响应', async ({ page }, testInfo) =>
   expect(failures).toEqual([])
 })
 
+test('HTTPS 远程图片可以在预览中加载', async ({ page }) => {
+  await page.route('https://example.com/image.png', route => route.fulfill({
+    contentType: 'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL9WQAAAABJRU5ErkJggg==', 'base64'),
+  }))
+  await page.goto('/')
+  await page.locator('#editor textarea').fill('![远程图片](https://example.com/image.png)')
+  const image = page.locator('.vditor-preview img[src="https://example.com/image.png"]')
+  await expect(image).toBeVisible()
+  await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(1)
+})
+
 for (const language of [
   'echarts', 'wavedrom', 'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
 ] as const) {
@@ -84,16 +96,16 @@ for (const language of [
 }
 
 test('格式化链接中的子元素也使用安全打开逻辑', async ({ page, context }) => {
-  await context.route('https://github.com/**/*', route => route.fulfill({ body: 'ok' }))
+  await context.route('https://example.com/**/*', route => route.fulfill({ body: 'ok' }))
   await page.goto('/')
-  await page.locator('#editor textarea').fill('[**外部链接**](https://github.com/)')
+  await page.locator('#editor textarea').fill('[**外部链接**](https://example.com/)')
 
   const popupEvent = page.waitForEvent('popup')
   await page.locator('.vditor-preview a strong').click()
   const popup = await popupEvent
 
   await popup.waitForLoadState()
-  expect(popup.url()).toBe('https://github.com/')
+  expect(popup.url()).toBe('https://example.com/')
   expect(await popup.evaluate(() => window.opener)).toBeNull()
   await popup.close()
 })
