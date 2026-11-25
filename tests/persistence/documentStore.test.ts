@@ -98,12 +98,47 @@ describe('documentStore', () => {
     expect(setItem).not.toHaveBeenCalled()
   })
 
-  it('不支持 Web Locks 时使用期望值检查降级保存', async () => {
+  it('不支持 Web Locks 时使用租约协议降级保存', async () => {
     const storage = new MemoryStorage()
 
     expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
     expect(storage.getItem(documentKey)).toBe('新内容')
     expect(await saveDocumentExclusive(storage, undefined, '旧页面内容', null)).toBe('conflict')
     expect(storage.getItem(documentKey)).toBe('新内容')
+    expect(storage.getItem(`${documentKey}:lease`)).toBeNull()
+  })
+
+  it('租约被其他标签页持有时等待其释放后保存', async () => {
+    const storage = new MemoryStorage()
+    const leaseKey = `${documentKey}:lease`
+    storage.setItem(leaseKey, JSON.stringify({ token: 'other-tab', expiresAt: Date.now() + 60 }))
+    setTimeout(() => storage.removeItem(leaseKey), 30)
+
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
+    expect(storage.getItem(documentKey)).toBe('新内容')
+  })
+
+  it('其他标签页崩溃后过期租约可被接管', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(`${documentKey}:lease`, JSON.stringify({ token: 'crashed-tab', expiresAt: Date.now() - 1 }))
+
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
+    expect(storage.getItem(documentKey)).toBe('新内容')
+  })
+
+  it('写入后租约被抢走时判定冲突而非误报保存', async () => {
+    const storage = new MemoryStorage()
+    const leaseKey = `${documentKey}:lease`
+    const originalSetItem = storage.setItem.bind(storage)
+    vi.spyOn(storage, 'setItem').mockImplementation((key, value) => {
+      originalSetItem(key, value)
+      if (key === documentKey) {
+        originalSetItem(leaseKey, JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 }))
+        originalSetItem(documentKey, '其他标签页的内容')
+      }
+    })
+
+    expect(await saveDocumentExclusive(storage, undefined, '我的内容', null)).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBe('其他标签页的内容')
   })
 })
