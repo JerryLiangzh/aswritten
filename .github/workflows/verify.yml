@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Check out codes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Node.js 22.12
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -36,7 +36,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Verify (unit + build + e2e)
-        run: npm run verify   # = npm run test && npm run build && npm run test:e2e
+        run: npm run verify
 
       - name: Dependencies security audit
         run: npm audit --audit-level=high
@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-results
           path: |
