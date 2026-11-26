@@ -1,13 +1,11 @@
 # outputs
 /dist/
++/test-results/
++/playwright-report/
++/.wrangler/
 
 # dependencies
 /node_modules/
-
-# tests
-/tests/
-/e2e/
-/playwright.config.ts
 
 # planning
 /docs/

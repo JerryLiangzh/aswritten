@@ -5,6 +5,49 @@
 import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
+const initTimeoutMs = 20000
+const disabledPreviewLanguages = [
+  'echarts', 'mermaid', 'plantuml', 'wavedrom',
+  'abc', 'flowchart', 'graphviz', 'mindmap', 'markmap', 'smiles',
+] as const
+
+function disableUnsafePreviewRenderers(html: string): string {
+  const parsed = new DOMParser().parseFromString(html, 'text/html')
+
+  for (const language of disabledPreviewLanguages) {
+    const className = `language-${language}`
+    for (const element of parsed.querySelectorAll(`.${className}`)) {
+      element.classList.remove(className)
+      element.classList.add('language-plaintext')
+      element.setAttribute('data-render-disabled', language)
+    }
+  }
+  return parsed.body.innerHTML
+}
+
+function openSafeLink(anchor: HTMLAnchorElement): void {
+  const href = anchor.getAttribute('href')
+  if (!href) return
+
+  if (href.startsWith('#')) {
+    document.getElementById(href.slice(1))?.scrollIntoView()
+    return
+  }
+
+  let url: URL
+  try {
+    url = new URL(href, window.location.href)
+  } catch {
+    return
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return
+  }
+
+  window.open(url.href, '_blank', 'noopener,noreferrer')
+}
+
 class VditorEditorAdapter implements EditorAdapter {
   constructor(
     private readonly vditor: Vditor,
@@ -46,25 +89,65 @@ class VditorEditorAdapter implements EditorAdapter {
   }
 }
 
-export function createVditorAdapter(container: HTMLElement): Promise<EditorAdapter> {
+export function createVditorAdapter(
+  container: HTMLElement,
+  onSlowInitialization?: () => void,
+): Promise<EditorAdapter> {
   return new Promise((resolve, reject) => {
-    const vditor = new Vditor(container, {
-      cdn: '/vditor',
-      mode: 'sv',
-      cache: { enable: false },
-      preview: {
-        mode: 'both',
-        markdown: { sanitize: true, inlineMath: true },
-        math: { engine: 'KaTeX' },
-      },
-      after: () => {
-        const source = container.querySelector<HTMLTextAreaElement>('textarea')
-        if (!source) {
-          reject(new Error('Vditor SV 源码输入区不可用'))
-          return
-        }
-        resolve(new VditorEditorAdapter(vditor, source))
-      },
-    })
+    let settled = false
+    const timer = window.setTimeout(() => {
+      onSlowInitialization?.()
+    }, initTimeoutMs)
+
+    const succeed = (adapter: EditorAdapter) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      resolve(adapter)
+    }
+    const fail = (error: unknown) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      reject(error instanceof Error ? error : new Error('Vditor 初始化失败'))
+    }
+
+    container.addEventListener('click', event => {
+      if (!(event.target instanceof Element)) return
+      const anchor = event.target.closest<HTMLAnchorElement>(
+        '.vditor-preview a[href]',
+      )
+      if (!anchor) return
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      openSafeLink(anchor)
+    }, true)
+
+    try {
+      const vditor = new Vditor(container, {
+        cdn: '/vditor',
+        mode: 'sv',
+        cache: { enable: false },
+        preview: {
+          mode: 'both',
+          markdown: { sanitize: true, inlineMath: true },
+          math: { engine: 'KaTeX' },
+          render: { media: { enable: false } },
+          transform: disableUnsafePreviewRenderers,
+        },
+        link: { isOpen: false },
+        after: () => {
+          const source = container.querySelector<HTMLTextAreaElement>('textarea')
+          if (!source) {
+            fail(new Error('Vditor SV 源码输入区不可用'))
+            return
+          }
+          succeed(new VditorEditorAdapter(vditor, source))
+        },
+      })
+    } catch (error) {
+      fail(error)
+    }
   })
 }

@@ -1,7 +1,6 @@
 {
   "name": "aswritten",
-  "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -12,9 +11,10 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests",
-    "test:watch": "vitest",
+    "test:watch": "vitest tests",
     "test:e2e": "playwright test",
-    "verify": "npm run test && npm run build && npm run test:e2e"
+    "test:e2e:production": "npm run build && playwright test --config=playwright.production.config.ts",
+    "verify": "npm run test && npm run test:e2e && npm run test:e2e:production"
   },
   "dependencies": {
     "vditor": "^4.0.1"

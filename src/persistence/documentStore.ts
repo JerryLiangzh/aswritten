@@ -1,4 +1,6 @@
-const documentKey = 'aswritten:document:v1'
+export const documentKey = 'aswritten:document:v1'
+
+export type SaveDocumentResult = 'saved' | 'conflict' | 'error'
 
 export function loadDocument(storage: Storage, onError?: (error: unknown) => void): string | null {
   try {
@@ -9,11 +11,37 @@ export function loadDocument(storage: Storage, onError?: (error: unknown) => voi
   }
 }
 
-export function saveDocument(storage: Storage, value: string): boolean {
+export function saveDocument(
+  storage: Storage,
+  value: string,
+  expectedValue: string | null,
+): SaveDocumentResult {
   try {
+    if (storage.getItem(documentKey) !== expectedValue) {
+      return 'conflict'
+    }
     storage.setItem(documentKey, value)
-    return true
+    return 'saved'
   } catch {
-    return false
+    return 'error'
+  }
+}
+
+export async function saveDocumentExclusive(
+  storage: Storage,
+  locks: LockManager | undefined,
+  value: string,
+  expectedValue: string | null,
+): Promise<SaveDocumentResult> {
+  if (!locks) return 'error'
+
+  try {
+    return await locks.request(
+      `${documentKey}:write`,
+      { mode: 'exclusive' },
+      () => saveDocument(storage, value, expectedValue),
+    )
+  } catch {
+    return 'error'
   }
 }

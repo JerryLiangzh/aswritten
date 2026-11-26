@@ -1,0 +1,110 @@
+import { describe, expect, it, vi } from 'vitest'
+import { loadDocument, saveDocument, saveDocumentExclusive } from '../../src/persistence/documentStore'
+
+const documentKey = 'aswritten:document:v1'
+
+class MemoryStorage implements Storage {
+  private readonly values = new Map<string, string>()
+
+  get length(): number {
+    return this.values.size
+  }
+
+  clear(): void {
+    this.values.clear()
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null
+  }
+
+  key(index: number): string | null {
+    return Array.from(this.values.keys())[index] ?? null
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key)
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, String(value))
+  }
+}
+
+describe('documentStore', () => {
+  it('无缓存时返回 null', () => {
+    expect(loadDocument(new MemoryStorage())).toBeNull()
+  })
+
+  it('使用固定键保存并读取中文和 LaTeX 原文', () => {
+    const storage = new MemoryStorage()
+    const value = '# 中文标题\n\n$\\frac{a}{b}$ 与 ${\\color{red} x+y}$'
+
+    expect(saveDocument(storage, value, null)).toBe('saved')
+    expect(storage.getItem(documentKey)).toBe(value)
+    expect(loadDocument(storage)).toBe(value)
+  })
+
+  it('读取异常时返回 null 且不覆盖缓存', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '原缓存')
+    const setItem = vi.spyOn(storage, 'setItem')
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage unavailable')
+    })
+
+    expect(loadDocument(storage)).toBeNull()
+    expect(setItem).not.toHaveBeenCalled()
+  })
+
+  it('读取异常时通知调用方', () => {
+    const storage = new MemoryStorage()
+    const error = new Error('storage unavailable')
+    const onError = vi.fn()
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw error
+    })
+
+    expect(loadDocument(storage, onError)).toBeNull()
+    expect(onError).toHaveBeenCalledWith(error)
+  })
+
+  it('写入异常时返回 error', () => {
+    const storage = new MemoryStorage()
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError')
+    })
+
+    expect(saveDocument(storage, '# 未保存', null)).toBe('error')
+  })
+
+  it('缓存已被其他标签页修改时拒绝覆盖', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '其他标签页的新内容')
+
+    expect(saveDocument(storage, '当前标签页的旧内容', '原缓存')).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBe('其他标签页的新内容')
+  })
+
+  it('保存前读取失败时不继续写入', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '原缓存')
+    const setItem = vi.spyOn(storage, 'setItem')
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage unavailable')
+    })
+
+    expect(saveDocument(storage, '新内容', '原缓存')).toBe('error')
+    expect(setItem).not.toHaveBeenCalled()
+  })
+
+  it('不支持 Web Locks 时拒绝自动保存并保留现有文档', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(documentKey, '已有内容')
+    const setItem = vi.spyOn(storage, 'setItem')
+
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', '已有内容')).toBe('error')
+    expect(storage.getItem(documentKey)).toBe('已有内容')
+    expect(setItem).not.toHaveBeenCalled()
+  })
+})
