@@ -77,12 +77,23 @@ async function saveDocumentWithLease(
     }
 
     try {
-      if (storage.getItem(documentKey) !== expectedValue) {
+      const owned = readLease(storage)
+      if (!owned || owned.token !== token || owned.expiresAt <= Date.now() + leaseSettleMs) {
+        return 'conflict'
+      }
+      const before = storage.getItem(documentKey)
+      if (before !== expectedValue) {
         return 'conflict'
       }
       storage.setItem(documentKey, value)
       const leaseAfter = readLease(storage)
-      if (!leaseAfter || leaseAfter.token !== token) return 'conflict'
+      if (!leaseAfter || leaseAfter.token !== token) {
+        if (storage.getItem(documentKey) === value) {
+          if (before === null) storage.removeItem(documentKey)
+          else storage.setItem(documentKey, before)
+        }
+        return 'conflict'
+      }
       if (storage.getItem(documentKey) !== value) return 'conflict'
       return 'saved'
     } finally {

@@ -141,4 +141,39 @@ describe('documentStore', () => {
     expect(await saveDocumentExclusive(storage, undefined, '我的内容', null)).toBe('conflict')
     expect(storage.getItem(documentKey)).toBe('其他标签页的内容')
   })
+
+  it('写入前发现租约已被接管时放弃写入而非覆盖新文档', async () => {
+    const storage = new MemoryStorage()
+    const leaseKey = `${documentKey}:lease`
+    storage.setItem(documentKey, '其他标签页的新内容')
+    let leaseReads = 0
+    const originalGetItem = storage.getItem.bind(storage)
+    vi.spyOn(storage, 'getItem').mockImplementation(key => {
+      if (key === leaseKey) {
+        leaseReads += 1
+        if (leaseReads === 3) {
+          return JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 })
+        }
+      }
+      return originalGetItem(key)
+    })
+
+    expect(await saveDocumentExclusive(storage, undefined, '我的旧内容', '其他标签页的新内容')).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBe('其他标签页的新内容')
+  })
+
+  it('写入后租约被抢走且对方尚未落盘时回滚本次写入', async () => {
+    const storage = new MemoryStorage()
+    const leaseKey = `${documentKey}:lease`
+    const originalSetItem = storage.setItem.bind(storage)
+    vi.spyOn(storage, 'setItem').mockImplementation((key, value) => {
+      originalSetItem(key, value)
+      if (key === documentKey && value === '我的内容') {
+        originalSetItem(leaseKey, JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 }))
+      }
+    })
+
+    expect(await saveDocumentExclusive(storage, undefined, '我的内容', null)).toBe('conflict')
+    expect(storage.getItem(documentKey)).toBeNull()
+  })
 })
