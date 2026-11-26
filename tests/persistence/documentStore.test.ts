@@ -98,82 +98,13 @@ describe('documentStore', () => {
     expect(setItem).not.toHaveBeenCalled()
   })
 
-  it('不支持 Web Locks 时使用租约协议降级保存', async () => {
+  it('不支持 Web Locks 时拒绝自动保存并保留现有文档', async () => {
     const storage = new MemoryStorage()
+    storage.setItem(documentKey, '已有内容')
+    const setItem = vi.spyOn(storage, 'setItem')
 
-    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
-    expect(storage.getItem(documentKey)).toBe('新内容')
-    expect(await saveDocumentExclusive(storage, undefined, '旧页面内容', null)).toBe('conflict')
-    expect(storage.getItem(documentKey)).toBe('新内容')
-    expect(storage.getItem(`${documentKey}:lease`)).toBeNull()
-  })
-
-  it('租约被其他标签页持有时等待其释放后保存', async () => {
-    const storage = new MemoryStorage()
-    const leaseKey = `${documentKey}:lease`
-    storage.setItem(leaseKey, JSON.stringify({ token: 'other-tab', expiresAt: Date.now() + 60 }))
-    setTimeout(() => storage.removeItem(leaseKey), 30)
-
-    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
-    expect(storage.getItem(documentKey)).toBe('新内容')
-  })
-
-  it('其他标签页崩溃后过期租约可被接管', async () => {
-    const storage = new MemoryStorage()
-    storage.setItem(`${documentKey}:lease`, JSON.stringify({ token: 'crashed-tab', expiresAt: Date.now() - 1 }))
-
-    expect(await saveDocumentExclusive(storage, undefined, '新内容', null)).toBe('saved')
-    expect(storage.getItem(documentKey)).toBe('新内容')
-  })
-
-  it('写入后租约被抢走时判定冲突而非误报保存', async () => {
-    const storage = new MemoryStorage()
-    const leaseKey = `${documentKey}:lease`
-    const originalSetItem = storage.setItem.bind(storage)
-    vi.spyOn(storage, 'setItem').mockImplementation((key, value) => {
-      originalSetItem(key, value)
-      if (key === documentKey) {
-        originalSetItem(leaseKey, JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 }))
-        originalSetItem(documentKey, '其他标签页的内容')
-      }
-    })
-
-    expect(await saveDocumentExclusive(storage, undefined, '我的内容', null)).toBe('conflict')
-    expect(storage.getItem(documentKey)).toBe('其他标签页的内容')
-  })
-
-  it('写入前发现租约已被接管时放弃写入而非覆盖新文档', async () => {
-    const storage = new MemoryStorage()
-    const leaseKey = `${documentKey}:lease`
-    storage.setItem(documentKey, '其他标签页的新内容')
-    let leaseReads = 0
-    const originalGetItem = storage.getItem.bind(storage)
-    vi.spyOn(storage, 'getItem').mockImplementation(key => {
-      if (key === leaseKey) {
-        leaseReads += 1
-        if (leaseReads === 3) {
-          return JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 })
-        }
-      }
-      return originalGetItem(key)
-    })
-
-    expect(await saveDocumentExclusive(storage, undefined, '我的旧内容', '其他标签页的新内容')).toBe('conflict')
-    expect(storage.getItem(documentKey)).toBe('其他标签页的新内容')
-  })
-
-  it('写入后租约被抢走且对方尚未落盘时回滚本次写入', async () => {
-    const storage = new MemoryStorage()
-    const leaseKey = `${documentKey}:lease`
-    const originalSetItem = storage.setItem.bind(storage)
-    vi.spyOn(storage, 'setItem').mockImplementation((key, value) => {
-      originalSetItem(key, value)
-      if (key === documentKey && value === '我的内容') {
-        originalSetItem(leaseKey, JSON.stringify({ token: 'rival', expiresAt: Date.now() + 5_000 }))
-      }
-    })
-
-    expect(await saveDocumentExclusive(storage, undefined, '我的内容', null)).toBe('conflict')
-    expect(storage.getItem(documentKey)).toBeNull()
+    expect(await saveDocumentExclusive(storage, undefined, '新内容', '已有内容')).toBe('error')
+    expect(storage.getItem(documentKey)).toBe('已有内容')
+    expect(setItem).not.toHaveBeenCalled()
   })
 })
