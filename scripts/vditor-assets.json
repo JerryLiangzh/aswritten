@@ -1,0 +1,15 @@
+{
+  "files": [
+    "js/lute/lute.min.js",
+    "js/i18n/zh_CN.js",
+    "js/icons/ant.js"
+  ],
+  "directories": [
+    "css/content-theme",
+    "js/highlight.js",
+    "js/katex",
+    "images"
+  ],
+  "maxFiles": 360,
+  "maxBytes": 7340032
+}
