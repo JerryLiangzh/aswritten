@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "vite",
     "preview": "vite preview",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && npm run check:dist",
+    "check:dist": "node scripts/check-dist.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests",
     "test:watch": "vitest tests",

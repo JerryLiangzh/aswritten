@@ -1,16 +1,19 @@
-/**
- * 文件名: vite.config.ts
- * 描述: 配置 Vite 构建及 Vditor 自托管静态资源。
- */
 import { defineConfig } from 'vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import vditorAssets from './scripts/vditor-assets.json' with { type: 'json' }
+
+const vditorDist = 'node_modules/vditor/dist'
+const vditorSources = [
+  ...vditorAssets.files,
+  ...vditorAssets.directories.map(directory => `${directory}/**/*`),
+].map(file => `${vditorDist}/${file}`)
 
 export default defineConfig({
   plugins: [
     viteStaticCopy({
       targets: [
         {
-          src: 'node_modules/vditor/dist/**/*',
+          src: vditorSources,
           dest: 'vditor/dist',
           rename: { stripBase: 3 },
         },

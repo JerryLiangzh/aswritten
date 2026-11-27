@@ -1,7 +1,3 @@
-/**
- * 文件名: vditorAdapter.ts
- * 描述: 使用 Vditor 公开接口和标准 textarea 选区实现编辑器适配器。
- */
 import Vditor from 'vditor'
 import type { EditorAdapter, EditorSnapshot, TextChange } from './types'
 
@@ -128,6 +124,20 @@ export function createVditorAdapter(
       const vditor = new Vditor(container, {
         cdn: '/vditor',
         mode: 'sv',
+        toolbar: [
+          'emoji', 'headings', 'bold', 'italic', 'strike', 'link', '|',
+          'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
+          'quote', 'line', 'code', 'inline-code', 'insert-before', 'insert-after', '|',
+          'upload', 'record', 'table', '|', 'undo', 'redo', '|',
+          'fullscreen', 'edit-mode',
+          {
+            name: 'more',
+            toolbar: [
+              'both', 'code-theme', 'content-theme', 'outline',
+              'preview', 'info', 'help',
+            ],
+          },
+        ],
         cache: { enable: false },
         preview: {
           mode: 'both',
